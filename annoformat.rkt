@@ -17,3 +17,25 @@
 
 (define find-time
   (sxpath "/document/annotations/annotation/segment/movingRegion/rectRegion"))
+
+(define test-dir (build-path (find-system-path 'orig-dir)
+                             "CIR Annotations\\"))
+
+(define (do-files directory proc)
+  (map (lambda (path)
+         (call-with-input-file path proc))
+       (directory-list directory
+                       #:build? #t)))
+
+(define (text-count in-file)
+  (length (find-text (ssax:xml->sxml in-file '()))))
+
+(define (time-count in-file)
+  (length (find-time (ssax:xml->sxml in-file '()))))
+
+(define (text-per-timestamp xml)
+  (= (length (find-text xml))
+     (* 2 (length (find-time xml)))))
+
+(define (count-text-per-timestamp in-file)
+  (text-per-timestamp (ssax:xml->sxml in-file '())))
