@@ -18,6 +18,13 @@
 (define find-time
   (sxpath "/document/annotations/annotation/segment/movingRegion/rectRegion"))
 
+(define (extract-t rect-region)
+  (second (fifth (second rect-region))))
+
+(define (t-list xml)
+  (map extract-t
+       (every-other (find-time xml))))
+
 (define test-dir (build-path (find-system-path 'orig-dir)
                              "CIR Annotations\\"))
 
@@ -26,6 +33,16 @@
          (call-with-input-file path proc))
        (directory-list directory
                        #:build? #t)))
+
+(define (every-other li)
+  (let ((c 0))
+    (filter (lambda (x)
+              (begin
+                (set! c (+ c 1))
+                (odd? c)))
+            li)))
+
+;; some tests on general annotation structure
 
 (define (text-count in-file)
   (length (find-text (ssax:xml->sxml in-file '()))))
