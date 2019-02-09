@@ -40,20 +40,27 @@
          (string-append (extract-t rr) "\n"))
        (every-other (find-time xml))))
 
-;; zips timecodes with line-broken text blurbs
+;; zips lists of unequal length
+(define (interleave list1 list2)
+  (cond ((empty? list1) list2)
+        ((empty? list2) list1)
+        (else 
+         (append 
+          (list (car list1) (car list2))
+          (interleave (cdr list1) (cdr list2))))))
+
+;; zips formatted timecodes and text
 (define (combine-time-text xml)
-  (map list
-       (break-time xml)
-       (break-text (find-text xml))))
+  (interleave (break-time xml)
+              (break-text (find-text xml))))
 
 (define (display-time-text ttl out)
   (map (lambda (tt)
-         (begin
-           (display (first tt) out)
-           (display (second tt) out)))
+         (display tt out))
        ttl))
 
-;; for the big run
+;;; I/O
+
 (define input-dir (build-path (find-system-path 'orig-dir)
                               "CIR Annotations\\"))
 
@@ -64,8 +71,11 @@
     (lambda (input)
       (call-with-output-file out-path
         (lambda (output)
-          (display-time-text (combine-time-text (ssax:xml->sxml input))
-                             output))))))
+          (display-time-text (combine-time-text (ssax:xml->sxml input '()))
+                             output))
+        #:mode 'text
+        #:exists 'replace))
+    #:mode 'text))
 
 ;; takes input path and generates output path
 (define (transform-path in-path)
@@ -78,7 +88,12 @@
        (directory-list directory
                        #:build? #t)))
 
-;; some tests on general annotation structure
+(define (reformat-all)
+  (do-files input-dir
+            (lambda (in-path)
+              (in-out in-path (transform-path in-path)))))
+
+;;; Some tests on general annotation structure
 
 (define (text-count in-file)
   (length (find-text (ssax:xml->sxml in-file '()))))
