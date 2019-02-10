@@ -1,11 +1,33 @@
 #lang racket
 
 (require sxml)
+(require srfi/13)
 
 (define test-file "test.annotations.xml")
 
 (define (get-sxml filename)
   (ssax:xml->sxml (open-input-file filename) '()))
+
+(define find-annotations
+  (sxpath "/document/annotations/annotation"))
+
+(define (first-log-data xml)
+  (if (not (null? (find-annotations xml)))
+      (sxml:attr (car (find-annotations xml))
+                 'log_data)
+      ""))
+
+(define url-key "&a-v=")
+
+(define (find-video-url logstr)
+  (if (string-contains logstr url-key)
+      (let* ((start (+ 5 (string-contains logstr url-key)))
+             (end (+ start 11)))
+        (string-append "https://youtu.be/" (substring logstr start end)))
+      ""))
+
+(define (get-url xml)
+  (find-video-url (first-log-data xml)))
 
 (define find-text
   (sxpath "/document/annotations/annotation/TEXT"))
@@ -71,8 +93,12 @@
     (lambda (input)
       (call-with-output-file out-path
         (lambda (output)
-          (display-time-text (combine-time-text (ssax:xml->sxml input '()))
-                             output))
+          (let ((sxml (ssax:xml->sxml input '())))
+            (begin
+              (display (string-append (get-url sxml) "\n\n")
+                       output)
+              (display-time-text (combine-time-text sxml)
+                                 output))))
         #:mode 'text
         #:exists 'replace))
     #:mode 'text))
